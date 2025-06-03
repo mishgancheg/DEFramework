@@ -6,21 +6,21 @@
 
 JADEStrategy::JADEStrategy(size_t archiveSize) : archive(archiveSize) {}
 
-void JADEStrategy::evolve(Population& population) {
+void JADEStrategy::evolve(Population& pop) {
     std::vector<double> SF, SCR;
     std::vector<Individual> newGeneration;
 
-    auto& individuals = population.getIndividuals();
+    auto& individuals = pop.getIndividuals();
     size_t D = individuals[0].genome.size(); //  size of individual
 
     for (size_t i = 0; i < individuals.size(); ++i) {
-        double Fi = std::min(1.0, std::max(0.0, mu_F + 0.1 * tan(PI * (rand() / (double)RAND_MAX - 0.5)))); // making new F value. Koshi destr
-        double CRi = std::min(1.0, std::max(0.0, mu_CR + 0.1 * (rand() / (double)RAND_MAX))); // making new CR value. Normal distr
+        double Fi = std::clamp(sampleCauchy(mu_F, 0.1, pop.getRNG()), 0.0, 1.0); // making new F value. Cauchy distr [0;1]
+        double CRi = std::clamp(sampleNormal(mu_CR, 0.1, pop.getRNG()), 0.0, 1.0); // making new CR value. Normal distr [0;1]
 
-        Individual Vi = mutate(individuals[i], population, Fi); // new indiv 
+        Individual Vi = mutate(individuals[i], pop, Fi); // new indiv 
         Individual Ui = crossover(individuals[i], Vi, CRi); // 
 
-        Ui.fitness = population.evaluate(Ui.genome); // calculating fitness for new indiv.
+        Ui.fitness = pop.evaluate(Ui.genome); // calculating fitness for new indiv.
 
         if (Ui.fitness < individuals[i].fitness) {
             archive.add(individuals[i]);
@@ -105,4 +105,16 @@ void JADEStrategy::updateParameters(std::vector<double>& SF, std::vector<double>
     double sumCR = 0;
     for (double cr : SCR) sumCR += cr;
     mu_CR = sumCR / SCR.size();
+}
+
+
+double JADEStrategy::sampleCauchy(double location, double scale, std::mt19937& rng) {
+    std::cauchy_distribution<double> dist(location, scale);
+    return dist(rng);
+}
+
+double JADEStrategy::sampleNormal(double mean, double stddev, std::mt19937& rng) {
+    static std::mt19937 gen(std::random_device{}());
+    std::normal_distribution<double> dist(mean, stddev);
+    return dist(gen);
 }

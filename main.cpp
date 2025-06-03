@@ -1,8 +1,10 @@
-#include <iostream>
 #include "de/Population.hpp"
 #include "de/DERunner.hpp"
 #include "de/strategies/DE_Rand_1_Bin.hpp"
 #include "de/strategies/JADE.hpp"
+#include "de/strategies/L_SHADE.hpp"
+#include <iostream>
+#include <numbers>
 
 // FUNCTIONS:
 
@@ -22,7 +24,18 @@ double sphere(const std::vector<double>& x) {
     return sum;
 }
 
+double ackley(const std::vector<double>& x) {
+    double a = 20.0, b = 0.2, c = 2.0 * 3.1415926535;
+    int d = x.size();
 
+    double sum1 = 0.0, sum2 = 0.0;
+    for (double xi : x) {
+        sum1 += xi * xi;
+        sum2 += std::cos(c * xi);
+    }
+
+    return -a * std::exp(-b * std::sqrt(sum1 / d)) - std::exp(sum2 / d) + a + std::exp(1.0);
+}
 int main() {
 	// HYPERPARAMETERS:
     int dimension = 3;
@@ -46,4 +59,18 @@ int main() {
 
     auto& best_2 = pop_2.best();
     std::cout << "Best fitness for rastrigin func with JADE strategy: " << best_2.fitness << std::endl;
+
+    // Ackley - L-SHADE strategy
+    int dims = 20;
+    int NP_init = 100;
+    int NP_min = 80;
+    int archive_size = 100;
+    Population pop_3(NP_init, dims, ackley, -30, 30);
+    DERunner runner_3(std::make_unique<L_SHADEStrategy>(archive_size, NP_init, NP_min, iterations), 1);
+
+    runner_3.run(pop_3, iterations);
+
+    auto& best_3 = pop_3.best();
+    std::cout << "Best fitness for Ackley func with L-SHADE strategy: " << best_3.fitness << std::endl;
+
 }
